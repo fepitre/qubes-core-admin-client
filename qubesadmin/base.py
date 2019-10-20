@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-'''Base classes for managed objects'''
+"""Base classes for managed objects"""
 
 import qubesadmin.exc
 
@@ -26,12 +26,13 @@ DEFAULT = object()
 
 
 class PropertyHolder(object):
-    '''A base class for object having properties retrievable using mgmt API.
+    """A base class for object having properties retrievable using mgmt API.
 
     Warning: each (non-private) local attribute needs to be defined at class
     level, even if initialized in __init__; otherwise will be treated as
     property retrievable using mgmt call.
-    '''
+    """
+
     #: a place for appropriate Qubes() object (QubesLocal or QubesRemote),
     # use None for self
     app = None
@@ -45,9 +46,10 @@ class PropertyHolder(object):
         self._properties = None
         self._properties_help = None
 
-    def qubesd_call(self, dest, method, arg=None, payload=None,
-            payload_stream=None):
-        '''
+    def qubesd_call(
+        self, dest, method, arg=None, payload=None, payload_stream=None
+    ):
+        """
         Call into qubesd using appropriate mechanism. This method should be
         defined by a subclass.
 
@@ -59,126 +61,127 @@ class PropertyHolder(object):
         :param payload: Payload send to the method
         :param payload_stream: file-like object to read payload from
         :return: Data returned by qubesd (string)
-        '''
+        """
         if dest is None:
             dest = self._method_dest
         # have the actual implementation at Qubes() instance
         if self.app:
-            return self.app.qubesd_call(dest, method, arg, payload,
-                payload_stream)
+            return self.app.qubesd_call(
+                dest, method, arg, payload, payload_stream
+            )
         raise NotImplementedError
 
     @staticmethod
     def _parse_qubesd_response(response_data):
-        '''Parse response from qubesd.
+        """Parse response from qubesd.
 
         In case of success, return actual data. In case of error,
         raise appropriate exception.
-        '''
+        """
 
-        if response_data == b'':
+        if response_data == b"":
             raise qubesadmin.exc.QubesDaemonNoResponseError(
-                'Got empty response from qubesd. See journalctl in dom0 for '
-                'details.')
+                "Got empty response from qubesd. See journalctl in dom0 for "
+                "details."
+            )
 
-        if response_data[0:2] == b'\x30\x00':
+        if response_data[0:2] == b"\x30\x00":
             return response_data[2:]
-        if response_data[0:2] == b'\x32\x00':
-            (_, exc_type, _traceback, format_string, args) = \
-                response_data.split(b'\x00', 4)
+        if response_data[0:2] == b"\x32\x00":
+            (
+                _,
+                exc_type,
+                _traceback,
+                format_string,
+                args,
+            ) = response_data.split(b"\x00", 4)
             # drop last field because of terminating '\x00'
-            args = [arg.decode() for arg in args.split(b'\x00')[:-1]]
-            format_string = format_string.decode('utf-8')
-            exc_type = exc_type.decode('ascii')
+            args = [arg.decode() for arg in args.split(b"\x00")[:-1]]
+            format_string = format_string.decode("utf-8")
+            exc_type = exc_type.decode("ascii")
             try:
                 exc_class = getattr(qubesadmin.exc, exc_type)
             except AttributeError:
-                if exc_type.endswith('Error'):
-                    exc_class = __builtins__.get(exc_type,
-                        qubesadmin.exc.QubesException)
+                if exc_type.endswith("Error"):
+                    exc_class = __builtins__.get(
+                        exc_type, qubesadmin.exc.QubesException
+                    )
                 else:
                     exc_class = qubesadmin.exc.QubesException
             # TODO: handle traceback if given
             raise exc_class(format_string, *args)
         raise qubesadmin.exc.QubesDaemonCommunicationError(
-            'Invalid response format')
+            "Invalid response format"
+        )
 
     def property_list(self):
-        '''
+        """
         List available properties (their names).
 
         :return: list of strings
-        '''
+        """
         if self._properties is None:
             properties_str = self.qubesd_call(
-                self._method_dest,
-                self._method_prefix + 'List',
-                None,
-                None)
-            self._properties = properties_str.decode('ascii').splitlines()
+                self._method_dest, self._method_prefix + "List", None, None
+            )
+            self._properties = properties_str.decode("ascii").splitlines()
         # TODO: make it somehow immutable
         return self._properties
 
     def property_help(self, name):
-        '''
+        """
         Get description of a property.
 
         :return: property help text
-        '''
+        """
         help_text = self.qubesd_call(
-            self._method_dest,
-            self._method_prefix + 'Help',
-            name,
-            None)
-        return help_text.decode('ascii')
+            self._method_dest, self._method_prefix + "Help", name, None
+        )
+        return help_text.decode("ascii")
 
     def property_is_default(self, item):
-        '''
+        """
         Check if given property have default value
 
         :param str item: name of property
         :return: bool
-        '''
-        if item.startswith('_'):
+        """
+        if item.startswith("_"):
             raise AttributeError(item)
         property_str = self.qubesd_call(
-            self._method_dest,
-            self._method_prefix + 'Get',
-            item,
-            None)
-        (default, _value) = property_str.split(b' ', 1)
-        assert default.startswith(b'default=')
-        is_default_str = default.split(b'=')[1]
-        is_default = is_default_str.decode('ascii') == "True"
+            self._method_dest, self._method_prefix + "Get", item, None
+        )
+        (default, _value) = property_str.split(b" ", 1)
+        assert default.startswith(b"default=")
+        is_default_str = default.split(b"=")[1]
+        is_default = is_default_str.decode("ascii") == "True"
         assert isinstance(is_default, bool)
         return is_default
 
     def property_get_default(self, item):
-        '''
+        """
         Get default property value, regardless of the current value
 
         :param str item: name of property
         :return: default value
-        '''
-        if item.startswith('_'):
+        """
+        if item.startswith("_"):
             raise AttributeError(item)
         property_str = self.qubesd_call(
-            self._method_dest,
-            self._method_prefix + 'GetDefault',
-            item,
-            None)
+            self._method_dest, self._method_prefix + "GetDefault", item, None
+        )
         if not property_str:
-            raise AttributeError(item + ' has no default')
-        (prop_type, value) = property_str.split(b' ', 1)
+            raise AttributeError(item + " has no default")
+        (prop_type, value) = property_str.split(b" ", 1)
         return self._parse_type_value(prop_type, value)
 
     def clone_properties(self, src, proplist=None):
-        '''Clone properties from other object.
+        """Clone properties from other object.
 
         :param PropertyHolder src: source object
         :param list proplist: list of properties \
             (:py:obj:`None` or omit for all properties)
-        '''
+        """
 
         if proplist is None:
             proplist = self.property_list()
@@ -190,21 +193,19 @@ class PropertyHolder(object):
                 continue
 
     def __getattr__(self, item):
-        if item.startswith('_'):
+        if item.startswith("_"):
             raise AttributeError(item)
         try:
             property_str = self.qubesd_call(
-                self._method_dest,
-                self._method_prefix + 'Get',
-                item,
-                None)
+                self._method_dest, self._method_prefix + "Get", item, None
+            )
         except qubesadmin.exc.QubesDaemonNoResponseError:
             raise qubesadmin.exc.QubesPropertyAccessError(item)
-        (_default, prop_type, value) = property_str.split(b' ', 2)
+        (_default, prop_type, value) = property_str.split(b" ", 2)
         return self._parse_type_value(prop_type, value)
 
     def _parse_type_value(self, prop_type, value):
-        '''
+        """
         Parse `type=... ...` qubesd response format. Return a value of
         appropriate type.
 
@@ -212,41 +213,43 @@ class PropertyHolder(object):
             `type=` prefix)
         :param bytes value: 'value' part of the response
         :return: parsed value
-        '''
+        """
         # pylint: disable=too-many-return-statements
-        prop_type = prop_type.decode('ascii')
-        if not prop_type.startswith('type='):
+        prop_type = prop_type.decode("ascii")
+        if not prop_type.startswith("type="):
             raise qubesadmin.exc.QubesDaemonCommunicationError(
-                'Invalid type prefix received: {}'.format(prop_type))
-        (_, prop_type) = prop_type.split('=', 1)
+                "Invalid type prefix received: {}".format(prop_type)
+            )
+        (_, prop_type) = prop_type.split("=", 1)
         value = value.decode()
-        if prop_type == 'str':
+        if prop_type == "str":
             return str(value)
-        if prop_type == 'bool':
-            if value == '':
+        if prop_type == "bool":
+            if value == "":
                 raise AttributeError
             return value == "True"
-        if prop_type == 'int':
-            if value == '':
+        if prop_type == "int":
+            if value == "":
                 raise AttributeError
             return int(value)
-        if prop_type == 'vm':
-            if value == '':
+        if prop_type == "vm":
+            if value == "":
                 return None
             return self.app.domains[value]
-        if prop_type == 'label':
-            if value == '':
+        if prop_type == "label":
+            if value == "":
                 return None
             return self.app.labels.get_blind(value)
         raise qubesadmin.exc.QubesDaemonCommunicationError(
-            'Received invalid value type: {}'.format(prop_type))
+            "Received invalid value type: {}".format(prop_type)
+        )
 
     @classmethod
     def _local_properties(cls):
-        '''
+        """
         Get set of property names that are properties on the Python object,
         and must not be set on the remote object
-        '''
+        """
         if "_local_properties_set" not in cls.__dict__:
             props = set()
             for class_ in cls.__mro__:
@@ -257,48 +260,46 @@ class PropertyHolder(object):
         return cls._local_properties_set
 
     def __setattr__(self, key, value):
-        if key.startswith('_') or key in self._local_properties():
+        if key.startswith("_") or key in self._local_properties():
             return super(PropertyHolder, self).__setattr__(key, value)
         if value is qubesadmin.DEFAULT:
             try:
                 self.qubesd_call(
-                    self._method_dest,
-                    self._method_prefix + 'Reset',
-                    key,
-                    None)
+                    self._method_dest, self._method_prefix + "Reset", key, None
+                )
             except qubesadmin.exc.QubesDaemonNoResponseError:
                 raise qubesadmin.exc.QubesPropertyAccessError(key)
         else:
             if isinstance(value, qubesadmin.vm.QubesVM):
                 value = value.name
             if value is None:
-                value = ''
+                value = ""
             try:
                 self.qubesd_call(
                     self._method_dest,
-                    self._method_prefix + 'Set',
+                    self._method_prefix + "Set",
                     key,
-                    str(value).encode('utf-8'))
+                    str(value).encode("utf-8"),
+                )
             except qubesadmin.exc.QubesDaemonNoResponseError:
                 raise qubesadmin.exc.QubesPropertyAccessError(key)
 
     def __delattr__(self, name):
-        if name.startswith('_') or name in self._local_properties():
+        if name.startswith("_") or name in self._local_properties():
             return super(PropertyHolder, self).__delattr__(name)
         try:
             self.qubesd_call(
-                self._method_dest,
-                self._method_prefix + 'Reset',
-                name
+                self._method_dest, self._method_prefix + "Reset", name
             )
         except qubesadmin.exc.QubesDaemonNoResponseError:
             raise qubesadmin.exc.QubesPropertyAccessError(name)
 
 
 class WrapperObjectsCollection(object):
-    '''Collection of simple named objects'''
+    """Collection of simple named objects"""
+
     def __init__(self, app, list_method, object_class):
-        '''
+        """
         Construct manager of named wrapper objects.
 
         :param app: Qubes() object
@@ -306,7 +307,7 @@ class WrapperObjectsCollection(object):
             must return simple "one name per line" list
         :param object_class: object class (callable) for wrapper objects,
             will be called with just two arguments: app and a name
-        '''
+        """
         self.app = app
         self._list_method = list_method
         self._object_class = object_class
@@ -316,16 +317,16 @@ class WrapperObjectsCollection(object):
         self._objects = {}
 
     def clear_cache(self):
-        '''Clear cached list of names'''
+        """Clear cached list of names"""
         self._names_list = None
 
     def refresh_cache(self, force=False):
-        '''Refresh cached list of names'''
+        """Refresh cached list of names"""
         if not force and self._names_list is not None:
             return
-        list_data = self.app.qubesd_call('dom0', self._list_method)
-        list_data = list_data.decode('ascii')
-        assert list_data[-1] == '\n'
+        list_data = self.app.qubesd_call("dom0", self._list_method)
+        list_data = list_data.decode("ascii")
+        assert list_data[-1] == "\n"
         self._names_list = [str(name) for name in list_data[:-1].splitlines()]
 
         for name, obj in list(self._objects.items()):
@@ -339,10 +340,10 @@ class WrapperObjectsCollection(object):
         return self.get_blind(item)
 
     def get_blind(self, item):
-        '''
+        """
         Get a property without downloading the list
         and checking if it's present
-        '''
+        """
         if item not in self._objects:
             self._objects[item] = self._object_class(self.app, item)
         return self._objects[item]
@@ -357,16 +358,16 @@ class WrapperObjectsCollection(object):
             yield key
 
     def keys(self):
-        '''Get list of names.'''
+        """Get list of names."""
         self.refresh_cache()
         return list(self._names_list)
 
     def items(self):
-        '''Get list of (key, value) pairs'''
+        """Get list of (key, value) pairs"""
         self.refresh_cache()
         return [(key, self.get_blind(key)) for key in self._names_list]
 
     def values(self):
-        '''Get list of objects'''
+        """Get list of objects"""
         self.refresh_cache()
         return [self.get_blind(key) for key in self._names_list]

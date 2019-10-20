@@ -18,7 +18,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-'''Console frontend for backup restore code'''
+"""Console frontend for backup restore code"""
 
 import getpass
 import sys
@@ -30,69 +30,120 @@ import qubesadmin.utils
 
 parser = qubesadmin.tools.QubesArgumentParser()
 
-parser.add_argument("--verify-only", action="store_true",
-    dest="verify_only", default=False,
-    help="Verify backup integrity without restoring any "
-         "data")
-
-parser.add_argument("--skip-broken", action="store_true", dest="skip_broken",
+parser.add_argument(
+    "--verify-only",
+    action="store_true",
+    dest="verify_only",
     default=False,
-    help="Do not restore VMs that have missing TemplateVMs "
-         "or NetVMs")
+    help="Verify backup integrity without restoring any " "data",
+)
 
-parser.add_argument("--ignore-missing", action="store_true",
-    dest="ignore_missing", default=False,
+parser.add_argument(
+    "--skip-broken",
+    action="store_true",
+    dest="skip_broken",
+    default=False,
+    help="Do not restore VMs that have missing TemplateVMs " "or NetVMs",
+)
+
+parser.add_argument(
+    "--ignore-missing",
+    action="store_true",
+    dest="ignore_missing",
+    default=False,
     help="Restore VMs even if their associated TemplateVMs "
-         "and NetVMs are missing")
+    "and NetVMs are missing",
+)
 
-parser.add_argument("--skip-conflicting", action="store_true",
-    dest="skip_conflicting", default=False,
-    help="Do not restore VMs that are already present on "
-         "the host")
+parser.add_argument(
+    "--skip-conflicting",
+    action="store_true",
+    dest="skip_conflicting",
+    default=False,
+    help="Do not restore VMs that are already present on " "the host",
+)
 
-parser.add_argument("--rename-conflicting", action="store_true",
-    dest="rename_conflicting", default=False,
+parser.add_argument(
+    "--rename-conflicting",
+    action="store_true",
+    dest="rename_conflicting",
+    default=False,
     help="Restore VMs that are already present on the host "
-         "under different names")
+    "under different names",
+)
 
-parser.add_argument("-x", "--exclude", action="append", dest="exclude",
+parser.add_argument(
+    "-x",
+    "--exclude",
+    action="append",
+    dest="exclude",
     default=[],
-    help="Skip restore of specified VM (may be repeated)")
+    help="Skip restore of specified VM (may be repeated)",
+)
 
-parser.add_argument("--skip-dom0-home", action="store_false", dest="dom0_home",
+parser.add_argument(
+    "--skip-dom0-home",
+    action="store_false",
+    dest="dom0_home",
     default=True,
-    help="Do not restore dom0 user home directory")
+    help="Do not restore dom0 user home directory",
+)
 
-parser.add_argument("--ignore-username-mismatch", action="store_true",
-    dest="ignore_username_mismatch", default=False,
-    help="Ignore dom0 username mismatch when restoring home "
-         "directory")
+parser.add_argument(
+    "--ignore-username-mismatch",
+    action="store_true",
+    dest="ignore_username_mismatch",
+    default=False,
+    help="Ignore dom0 username mismatch when restoring home " "directory",
+)
 
-parser.add_argument("--ignore-size-limit", action="store_true",
-    dest="ignore_size_limit", default=False,
-    help="Ignore size limit calculated from backup metadata")
+parser.add_argument(
+    "--ignore-size-limit",
+    action="store_true",
+    dest="ignore_size_limit",
+    default=False,
+    help="Ignore size limit calculated from backup metadata",
+)
 
-parser.add_argument("--compression-filter", "-Z", action="store",
+parser.add_argument(
+    "--compression-filter",
+    "-Z",
+    action="store",
     dest="compression",
     help="Force specific compression filter program, "
-         "instead of the one from the backup header")
+    "instead of the one from the backup header",
+)
 
-parser.add_argument("-d", "--dest-vm", action="store", dest="appvm",
-    help="Specify VM containing the backup to be restored")
+parser.add_argument(
+    "-d",
+    "--dest-vm",
+    action="store",
+    dest="appvm",
+    help="Specify VM containing the backup to be restored",
+)
 
-parser.add_argument("-p", "--passphrase-file", action="store",
-    dest="pass_file", default=None,
-    help="Read passphrase from file, or use '-' to read from stdin")
+parser.add_argument(
+    "-p",
+    "--passphrase-file",
+    action="store",
+    dest="pass_file",
+    default=None,
+    help="Read passphrase from file, or use '-' to read from stdin",
+)
 
-parser.add_argument('backup_location', action='store',
-    help="Backup directory name, or command to pipe from")
+parser.add_argument(
+    "backup_location",
+    action="store",
+    help="Backup directory name, or command to pipe from",
+)
 
-parser.add_argument('vms', nargs='*', action='store', default=[],
-    help='Restore only those VMs')
+parser.add_argument(
+    "vms", nargs="*", action="store", default=[], help="Restore only those VMs"
+)
 
 
 def handle_broken(app, args, restore_info):
-    '''Display information about problems with VMs selected for resetore'''
+    """Display information about problems with VMs selected for resetore"""
     there_are_conflicting_vms = False
     there_are_missing_templates = False
     there_are_missing_netvms = False
@@ -100,30 +151,26 @@ def handle_broken(app, args, restore_info):
 
     for vm_info in restore_info.values():
         assert isinstance(vm_info, BackupRestore.VMToRestore)
-        if BackupRestore.VMToRestore.EXCLUDED in \
-                vm_info.problems:
+        if BackupRestore.VMToRestore.EXCLUDED in vm_info.problems:
             continue
-        if BackupRestore.VMToRestore.MISSING_TEMPLATE in \
-                vm_info.problems:
+        if BackupRestore.VMToRestore.MISSING_TEMPLATE in vm_info.problems:
             there_are_missing_templates = True
-        if BackupRestore.VMToRestore.MISSING_NETVM in \
-                vm_info.problems:
+        if BackupRestore.VMToRestore.MISSING_NETVM in vm_info.problems:
             there_are_missing_netvms = True
-        if BackupRestore.VMToRestore.ALREADY_EXISTS in \
-                vm_info.problems:
+        if BackupRestore.VMToRestore.ALREADY_EXISTS in vm_info.problems:
             there_are_conflicting_vms = True
-        if BackupRestore.Dom0ToRestore.USERNAME_MISMATCH in \
-                vm_info.problems:
+        if BackupRestore.Dom0ToRestore.USERNAME_MISMATCH in vm_info.problems:
             dom0_username_mismatch = True
-
 
     if there_are_conflicting_vms:
         app.log.error(
-            "*** There are VMs with conflicting names on the host! ***")
+            "*** There are VMs with conflicting names on the host! ***"
+        )
         if args.skip_conflicting:
             app.log.error(
                 "Those VMs will not be restored. "
-                "The host VMs will NOT be overwritten.")
+                "The host VMs will NOT be overwritten."
+            )
         else:
             raise qubesadmin.exc.QubesException(
                 "Remove VMs with conflicting names from the host "
@@ -131,7 +178,8 @@ def handle_broken(app, args, restore_info):
                 "Or use --skip-conflicting to restore only those VMs that "
                 "do not exist on the host.\n"
                 "Or use --rename-conflicting to restore those VMs under "
-                "modified names (with numbers at the end).")
+                "modified names (with numbers at the end)."
+            )
 
     if args.verify_only:
         app.log.info("The above VM archive(s) will be verified.")
@@ -141,60 +189,83 @@ def handle_broken(app, args, restore_info):
         app.log.info("Exisiting VMs will NOT be removed.")
 
     if there_are_missing_templates:
-        app.log.warning("*** One or more TemplateVMs are missing on the "
-                        "host! ***")
+        app.log.warning(
+            "*** One or more TemplateVMs are missing on the " "host! ***"
+        )
         if not (args.skip_broken or args.ignore_missing):
             raise qubesadmin.exc.QubesException(
                 "Install them before proceeding with the restore."
-                "Or pass: --skip-broken or --ignore-missing.")
+                "Or pass: --skip-broken or --ignore-missing."
+            )
         if args.skip_broken:
-            app.log.warning("Skipping broken entries: VMs that depend on "
-                            "missing TemplateVMs will NOT be restored.")
+            app.log.warning(
+                "Skipping broken entries: VMs that depend on "
+                "missing TemplateVMs will NOT be restored."
+            )
         elif args.ignore_missing:
-            app.log.warning("Ignoring missing entries: VMs that depend "
+            app.log.warning(
+                "Ignoring missing entries: VMs that depend "
                 "on missing TemplateVMs will have default value "
-                "assigned.")
+                "assigned."
+            )
         else:
             raise qubesadmin.exc.QubesException(
-                "INTERNAL ERROR! Please report this to the Qubes OS team!")
+                "INTERNAL ERROR! Please report this to the Qubes OS team!"
+            )
 
     if there_are_missing_netvms:
-        app.log.warning("*** One or more NetVMs are missing on the "
-                        "host! ***")
+        app.log.warning(
+            "*** One or more NetVMs are missing on the " "host! ***"
+        )
         if not (args.skip_broken or args.ignore_missing):
             raise qubesadmin.exc.QubesException(
                 "Install them before proceeding with the restore."
-                "Or pass: --skip-broken or --ignore-missing.")
+                "Or pass: --skip-broken or --ignore-missing."
+            )
         if args.skip_broken:
-            app.log.warning("Skipping broken entries: VMs that depend on "
-                            "missing NetVMs will NOT be restored.")
+            app.log.warning(
+                "Skipping broken entries: VMs that depend on "
+                "missing NetVMs will NOT be restored."
+            )
         elif args.ignore_missing:
-            app.log.warning("Ignoring missing entries: VMs that depend "
-                "on missing NetVMs will have default value assigned.")
+            app.log.warning(
+                "Ignoring missing entries: VMs that depend "
+                "on missing NetVMs will have default value assigned."
+            )
         else:
             raise qubesadmin.exc.QubesException(
-                "INTERNAL ERROR! Please report this to the Qubes OS team!")
+                "INTERNAL ERROR! Please report this to the Qubes OS team!"
+            )
 
-    if 'dom0' in restore_info.keys() and args.dom0_home \
-        and not args.verify_only:
+    if (
+        "dom0" in restore_info.keys()
+        and args.dom0_home
+        and not args.verify_only
+    ):
         if dom0_username_mismatch:
-            app.log.warning("*** Dom0 username mismatch! This can break "
-                            "some settings! ***")
+            app.log.warning(
+                "*** Dom0 username mismatch! This can break "
+                "some settings! ***"
+            )
             if not args.ignore_username_mismatch:
                 raise qubesadmin.exc.QubesException(
                     "Skip restoring the dom0 home directory "
                     "(--skip-dom0-home), or pass "
-                    "--ignore-username-mismatch to continue anyway.")
+                    "--ignore-username-mismatch to continue anyway."
+                )
             app.log.warning("Continuing as directed.")
-        app.log.warning("NOTE: The archived dom0 home directory "
+        app.log.warning(
+            "NOTE: The archived dom0 home directory "
             "will be restored to a new directory "
             "'home-restore-<current-time>' "
             "created inside the dom0 home directory. Restored "
             "files should be copied or moved out of the new "
-            "directory before using them.")
+            "directory before using them."
+        )
+
 
 def main(args=None, app=None):
-    '''Main function of qvm-backup-restore'''
+    """Main function of qvm-backup-restore"""
     # pylint: disable=too-many-return-statements
     args = parser.parse_args(args, app=app)
 
@@ -203,7 +274,7 @@ def main(args=None, app=None):
         try:
             appvm = args.app.domains[args.appvm]
         except KeyError:
-            parser.error('no such domain: {!r}'.format(args.appvm))
+            parser.error("no such domain: {!r}".format(args.appvm))
 
     if args.pass_file is not None:
         pass_f = open(args.pass_file) if args.pass_file != "-" else sys.stdin
@@ -211,15 +282,21 @@ def main(args=None, app=None):
         if pass_f is not sys.stdin:
             pass_f.close()
     else:
-        passphrase = getpass.getpass("Please enter the passphrase to verify "
-                                     "and (if encrypted) decrypt the backup: ")
+        passphrase = getpass.getpass(
+            "Please enter the passphrase to verify "
+            "and (if encrypted) decrypt the backup: "
+        )
 
     args.app.log.info("Checking backup content...")
 
     try:
-        backup = BackupRestore(args.app, args.backup_location,
-            appvm, passphrase,
-            force_compression_filter=args.compression)
+        backup = BackupRestore(
+            args.app,
+            args.backup_location,
+            appvm,
+            passphrase,
+            force_compression_filter=args.compression,
+        )
     except qubesadmin.exc.QubesException as e:
         parser.error_runtime(str(e))
         # unreachable - error_runtime will raise SystemExit
@@ -242,9 +319,11 @@ def main(args=None, app=None):
 
     if args.vms:
         # use original name here, not renamed
-        backup.options.exclude += [vm_info.vm.name
+        backup.options.exclude += [
+            vm_info.vm.name
             for vm_info in restore_info.values()
-            if vm_info.vm.name not in args.vms]
+            if vm_info.vm.name not in args.vms
+        ]
         restore_info = backup.restore_info_verify(restore_info)
 
     print(backup.get_restore_summary(restore_info))
@@ -263,5 +342,6 @@ def main(args=None, app=None):
     except qubesadmin.exc.QubesException as e:
         parser.error_runtime(str(e))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

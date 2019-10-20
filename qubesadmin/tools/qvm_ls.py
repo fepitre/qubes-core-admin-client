@@ -23,7 +23,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-'''qvm-ls - List available domains'''
+"""qvm-ls - List available domains"""
 
 
 from __future__ import print_function
@@ -43,15 +43,16 @@ import qubesadmin.vm
 # columns
 #
 
+
 class Column(object):
-    '''A column in qvm-ls output characterised by its head and a way
+    """A column in qvm-ls output characterised by its head and a way
     to fetch a parameter describing the domain.
 
     :param str head: Column head (usually uppercase).
     :param str attr: Attribute, possibly complex (containing ``.``). This may \
         also be a callable that gets as its only argument the domain.
     :param str doc: Description of column (will be visible in --help-columns).
-    '''
+    """
 
     #: collection of all columns
     columns = {}
@@ -67,9 +68,8 @@ class Column(object):
 
         self.__class__.columns[self.ls_head] = self
 
-
     def cell(self, vm):
-        '''Format one cell.
+        """Format one cell.
 
         .. note::
 
@@ -80,27 +80,26 @@ class Column(object):
         :param qubes.vm.qubesvm.QubesVM: Domain to get a value from.
         :returns: string to display
         :rtype: str
-        '''
+        """
 
-        value = self.format(vm) or '-'
+        value = self.format(vm) or "-"
         return value
 
-
     def format(self, vm):
-        '''Format one cell value.
+        """Format one cell value.
 
         Return value to put in a table cell.
 
         :param qubes.vm.qubesvm.QubesVM: Domain to get a value from.
         :returns: Value to put, or :py:obj:`None` if no value.
         :rtype: str or None
-        '''
+        """
 
         ret = None
         try:
             if isinstance(self._attr, str):
                 ret = vm
-                for attrseg in self._attr.split('.'):
+                for attrseg in self._attr.split("."):
                     ret = getattr(ret, attrseg)
             elif isinstance(self._attr, collections.Callable):
                 ret = self._attr(vm)
@@ -115,66 +114,60 @@ class Column(object):
         return str(ret)
 
     def __repr__(self):
-        return '{}(head={!r})'.format(self.__class__.__name__,
-            self.ls_head)
-
+        return "{}(head={!r})".format(self.__class__.__name__, self.ls_head)
 
     def __eq__(self, other):
         return self.ls_head == other.ls_head
-
 
     def __lt__(self, other):
         return self.ls_head < other.ls_head
 
 
 class PropertyColumn(Column):
-    '''Column that displays value from property (:py:class:`property` or
+    """Column that displays value from property (:py:class:`property` or
     :py:class:`qubes.property`) of domain.
 
     :param name: Name of VM property.
-    '''
+    """
 
     def __init__(self, name):
-        ls_head = name.replace('_', '-').upper()
-        super(PropertyColumn, self).__init__(
-            head=ls_head,
-            attr=name)
+        ls_head = name.replace("_", "-").upper()
+        super(PropertyColumn, self).__init__(head=ls_head, attr=name)
 
     def __repr__(self):
-        return '{}(head={!r}'.format(
-            self.__class__.__name__,
-            self.ls_head)
+        return "{}(head={!r}".format(self.__class__.__name__, self.ls_head)
 
 
 def process_vm(vm):
-    '''Process VM object to find all listable properties.
+    """Process VM object to find all listable properties.
 
     :param qubesmgmt.vm.QubesVM vm: VM object.
-    '''
+    """
 
     for prop_name in vm.property_list():
         PropertyColumn(prop_name)
 
 
 def flag(field):
-    '''Mark method as flag field.
+    """Mark method as flag field.
 
     :param int field: Which field to fill (counted from 1)
-    '''
+    """
 
     def decorator(obj):
         # pylint: disable=missing-docstring
         obj.field = field
         return obj
+
     return decorator
 
 
 def simple_flag(field, letter, attr, doc=None):
-    '''Create simple, binary flag.
+    """Create simple, binary flag.
 
     :param str attr: Attribute name to check. If result is true, flag is fired.
     :param str letter: The letter to show.
-    '''
+    """
 
     def helper(self, vm):
         # pylint: disable=missing-docstring,unused-argument
@@ -192,18 +185,18 @@ def simple_flag(field, letter, attr, doc=None):
 
 
 class FlagsColumn(Column):
-    '''Some fancy flags that describe general status of the domain.'''
+    """Some fancy flags that describe general status of the domain."""
+
     # pylint: disable=no-self-use
 
     def __init__(self):
         super(FlagsColumn, self).__init__(
-            head='FLAGS',
-            doc=self.__class__.__doc__)
-
+            head="FLAGS", doc=self.__class__.__doc__
+        )
 
     @flag(1)
     def type(self, vm):
-        '''Type of domain.
+        """Type of domain.
 
         0   AdminVM (AKA Dom0)
         aA  AppVM
@@ -212,28 +205,27 @@ class FlagsColumn(Column):
         tT  TemplateVM
 
         When it is HVM (optimised VM), the letter is capital.
-        '''
+        """
 
         type_codes = {
-            'AdminVM': '0',
-            'TemplateVM': 't',
-            'AppVM': 'a',
-            'StandaloneVM': 's',
-            'DispVM': 'd',
+            "AdminVM": "0",
+            "TemplateVM": "t",
+            "AppVM": "a",
+            "StandaloneVM": "s",
+            "DispVM": "d",
         }
         ret = type_codes.get(vm.klass, None)
-        if ret == '0':
+        if ret == "0":
             return ret
 
         if ret is not None:
-            if getattr(vm, 'virt_mode', 'pv') == 'hvm':
+            if getattr(vm, "virt_mode", "pv") == "hvm":
                 return ret.upper()
             return ret
 
-
     @flag(2)
     def power(self, vm):
-        '''Current power state.
+        """Current power state.
 
         r   running
         t   transient
@@ -243,163 +235,192 @@ class FlagsColumn(Column):
         d   dying
         c   crashed
         ?   unknown
-        '''
+        """
 
         state = vm.get_power_state().lower()
-        if state == 'unknown':
-            return '?'
-        if state in ('running', 'transient', 'paused', 'suspended',
-                'halting', 'dying', 'crashed'):
+        if state == "unknown":
+            return "?"
+        if state in (
+            "running",
+            "transient",
+            "paused",
+            "suspended",
+            "halting",
+            "dying",
+            "crashed",
+        ):
             return state[0]
 
+    updateable = simple_flag(
+        3, "U", "updateable", doc="If the domain is updateable."
+    )
 
-    updateable = simple_flag(3, 'U', 'updateable',
-        doc='If the domain is updateable.')
+    provides_network = simple_flag(
+        4, "N", "provides_network", doc="If the domain provides network."
+    )
 
-    provides_network = simple_flag(4, 'N', 'provides_network',
-        doc='If the domain provides network.')
+    installed_by_rpm = simple_flag(
+        5, "R", "installed_by_rpm", doc="If the domain is installed by RPM."
+    )
 
-    installed_by_rpm = simple_flag(5, 'R', 'installed_by_rpm',
-        doc='If the domain is installed by RPM.')
+    internal = simple_flag(
+        6,
+        "i",
+        "internal",
+        doc="If the domain is internal (not normally shown, no appmenus).",
+    )
 
-    internal = simple_flag(6, 'i', 'internal',
-        doc='If the domain is internal (not normally shown, no appmenus).')
+    debug = simple_flag(7, "D", "debug", doc="If the domain is being debugged.")
 
-    debug = simple_flag(7, 'D', 'debug',
-        doc='If the domain is being debugged.')
-
-    autostart = simple_flag(8, 'A', 'autostart',
-        doc='If the domain is marked for autostart.')
+    autostart = simple_flag(
+        8, "A", "autostart", doc="If the domain is marked for autostart."
+    )
 
     # TODO (not sure if really):
     # include in backups
     # uses_custom_config
 
     def _no_flag(self, vm):
-        '''Reserved for future use.'''
-
+        """Reserved for future use."""
 
     @classmethod
     def get_flags(cls):
-        '''Get all flags as list.
+        """Get all flags as list.
 
         Holes between flags are filled with :py:meth:`_no_flag`.
 
         :rtype: list
-        '''
+        """
 
         flags = {}
         for mycls in cls.__mro__:
             for attr in mycls.__dict__.values():
-                if not hasattr(attr, 'field'):
+                if not hasattr(attr, "field"):
                     continue
                 if attr.field in flags:
                     continue
                 flags[attr.field] = attr
 
-        return [(flags[i] if i in flags else cls._no_flag)
-            for i in range(1, max(flags) + 1)]
-
+        return [
+            (flags[i] if i in flags else cls._no_flag)
+            for i in range(1, max(flags) + 1)
+        ]
 
     def format(self, vm):
-        return ''.join((flag(self, vm) or '-') for flag in self.get_flags())
+        return "".join((flag(self, vm) or "-") for flag in self.get_flags())
 
 
 def calc_size(vm, volume_name):
-    ''' Calculates the volume size in MB '''
+    """ Calculates the volume size in MB """
     try:
         return vm.volumes[volume_name].size // 1024 // 1024
     except KeyError:
         return 0
 
+
 def calc_usage(vm, volume_name):
-    ''' Calculates the volume usage in MB '''
+    """ Calculates the volume usage in MB """
     try:
         return vm.volumes[volume_name].usage // 1024 // 1024
     except KeyError:
         return 0
 
+
 def calc_used(vm, volume_name):
-    ''' Calculates the volume usage in percent '''
+    """ Calculates the volume usage in percent """
     size = calc_size(vm, volume_name)
     if size == 0:
         return 0
     usage = calc_usage(vm, volume_name)
-    return '{}%'.format(usage * 100 // size)
+    return "{}%".format(usage * 100 // size)
 
 
 # todo maxmem
 
-Column('STATE',
-    attr=(lambda vm: vm.get_power_state()),
-    doc='Current power state.')
+Column(
+    "STATE", attr=(lambda vm: vm.get_power_state()), doc="Current power state."
+)
 
-Column('CLASS',
-    attr=(lambda vm: vm.klass),
-    doc='Class of the qube.')
+Column("CLASS", attr=(lambda vm: vm.klass), doc="Class of the qube.")
 
 
-Column('GATEWAY',
-    attr='netvm.gateway',
-    doc='Network gateway.')
+Column("GATEWAY", attr="netvm.gateway", doc="Network gateway.")
 
-Column('MEMORY',
+Column(
+    "MEMORY",
     attr=(lambda vm: vm.get_mem() / 1024 if vm.is_running() else None),
-    doc='Memory currently used by VM')
+    doc="Memory currently used by VM",
+)
 
-Column('DISK',
+Column(
+    "DISK",
     attr=(lambda vm: vm.get_disk_utilization() // 1024 // 1024),
-    doc='Total disk utilisation.')
+    doc="Total disk utilisation.",
+)
 
 
-Column('PRIV-CURR',
-    attr=(lambda vm: calc_usage(vm, 'private')),
-    doc='Disk utilisation by private image (/home, /usr/local).')
+Column(
+    "PRIV-CURR",
+    attr=(lambda vm: calc_usage(vm, "private")),
+    doc="Disk utilisation by private image (/home, /usr/local).",
+)
 
-Column('PRIV-MAX',
-    attr=(lambda vm: calc_size(vm, 'private')),
-    doc='Maximum available space for private image.')
+Column(
+    "PRIV-MAX",
+    attr=(lambda vm: calc_size(vm, "private")),
+    doc="Maximum available space for private image.",
+)
 
-Column('PRIV-USED',
-    attr=(lambda vm: calc_used(vm, 'private')),
-    doc='Disk utilisation by private image as a percentage of available space.')
+Column(
+    "PRIV-USED",
+    attr=(lambda vm: calc_used(vm, "private")),
+    doc="Disk utilisation by private image as a percentage of available space.",
+)
 
 
-Column('ROOT-CURR',
-    attr=(lambda vm: calc_usage(vm, 'root')),
-    doc='Disk utilisation by root image (/usr, /lib, /etc, ...).')
+Column(
+    "ROOT-CURR",
+    attr=(lambda vm: calc_usage(vm, "root")),
+    doc="Disk utilisation by root image (/usr, /lib, /etc, ...).",
+)
 
-Column('ROOT-MAX',
-    attr=(lambda vm: calc_size(vm, 'root')),
-    doc='Maximum available space for root image.')
+Column(
+    "ROOT-MAX",
+    attr=(lambda vm: calc_size(vm, "root")),
+    doc="Maximum available space for root image.",
+)
 
-Column('ROOT-USED',
-    attr=(lambda vm: calc_used(vm, 'root')),
-    doc='Disk utilisation by root image as a percentage of available space.')
+Column(
+    "ROOT-USED",
+    attr=(lambda vm: calc_used(vm, "root")),
+    doc="Disk utilisation by root image as a percentage of available space.",
+)
 
 
 FlagsColumn()
 
 
 class Table(object):
-    '''Table that is displayed to the user.
+    """Table that is displayed to the user.
 
     :param domains: Domains to include in the table.
     :param list colnames: Names of the columns (need not to be uppercase).
-    '''
+    """
+
     def __init__(self, domains, colnames, spinner, raw_data=False):
         self.domains = domains
-        self.columns = tuple(Column.columns[col.upper().replace('_', '-')]
-                for col in colnames)
+        self.columns = tuple(
+            Column.columns[col.upper().replace("_", "-")] for col in colnames
+        )
         self.spinner = spinner
         self.raw_data = raw_data
 
     def get_head(self):
-        '''Get table head data (all column heads).'''
+        """Get table head data (all column heads)."""
         return [col.ls_head for col in self.columns]
 
     def get_row(self, vm):
-        '''Get single table row data (all columns for one domain).'''
+        """Get single table row data (all columns for one domain)."""
         ret = []
         for col in self.columns:
             ret.append(col.cell(vm))
@@ -407,14 +428,14 @@ class Table(object):
         return ret
 
     def write_table(self, stream=sys.stdout):
-        '''Write whole table to file-like object.
+        """Write whole table to file-like object.
 
         :param file stream: Stream to write the table to.
-        '''
+        """
 
         table_data = []
         if not self.raw_data:
-            self.spinner.show('please wait...')
+            self.spinner.show("please wait...")
             table_data.append(self.get_head())
             self.spinner.update()
             for vm in sorted(self.domains):
@@ -423,83 +444,106 @@ class Table(object):
             qubesadmin.tools.print_table(table_data, stream=stream)
         else:
             for vm in sorted(self.domains):
-                stream.write('|'.join(self.get_row(vm)) + '\n')
+                stream.write("|".join(self.get_row(vm)) + "\n")
 
 
 #: Available formats. Feel free to plug your own one.
 formats = {
-    'simple': ('name', 'state', 'class', 'label', 'template', 'netvm'),
-    'network': ('name', 'state', 'netvm', 'ip', 'ipback', 'gateway'),
-    'kernel': ('name', 'state', 'class', 'template', 'kernel', 'kernelopts'),
-    'full': ('name', 'state', 'class', 'label', 'qid', 'xid', 'uuid'),
-#   'perf': ('name', 'state', 'cpu', 'memory'),
-    'disk': ('name', 'state', 'disk',
-        'priv-curr', 'priv-max', 'priv-used',
-        'root-curr', 'root-max', 'root-used'),
+    "simple": ("name", "state", "class", "label", "template", "netvm"),
+    "network": ("name", "state", "netvm", "ip", "ipback", "gateway"),
+    "kernel": ("name", "state", "class", "template", "kernel", "kernelopts"),
+    "full": ("name", "state", "class", "label", "qid", "xid", "uuid"),
+    #   'perf': ('name', 'state', 'cpu', 'memory'),
+    "disk": (
+        "name",
+        "state",
+        "disk",
+        "priv-curr",
+        "priv-max",
+        "priv-used",
+        "root-curr",
+        "root-max",
+        "root-used",
+    ),
 }
 
 
 class _HelpColumnsAction(argparse.Action):
-    '''Action for argument parser that displays all columns and exits.'''
+    """Action for argument parser that displays all columns and exits."""
+
     # pylint: disable=redefined-builtin
-    def __init__(self,
-            option_strings,
-            dest=argparse.SUPPRESS,
-            default=argparse.SUPPRESS,
-            help='list all available columns with short descriptions and exit'):
+    def __init__(
+        self,
+        option_strings,
+        dest=argparse.SUPPRESS,
+        default=argparse.SUPPRESS,
+        help="list all available columns with short descriptions and exit",
+    ):
         super(_HelpColumnsAction, self).__init__(
             option_strings=option_strings,
             dest=dest,
             default=default,
             nargs=0,
-            help=help)
+            help=help,
+        )
 
     def __call__(self, parser, namespace, values, option_string=None):
         width = max(len(column.ls_head) for column in Column.columns.values())
-        wrapper = textwrap.TextWrapper(width=80,
-            initial_indent='  ', subsequent_indent=' ' * (width + 6))
+        wrapper = textwrap.TextWrapper(
+            width=80, initial_indent="  ", subsequent_indent=" " * (width + 6)
+        )
 
-        text = 'Available columns:\n' + '\n'.join(
-            wrapper.fill('{head:{width}s}  {doc}'.format(
-                head=column.ls_head,
-                doc=column.__doc__ or '',
-                width=width))
-            for column in sorted(Column.columns.values()))
-        text += '\n\nAdditionally any VM property may be used as a column, ' \
-                'see qvm-prefs --help-properties for available values'
-        parser.exit(message=text + '\n')
+        text = "Available columns:\n" + "\n".join(
+            wrapper.fill(
+                "{head:{width}s}  {doc}".format(
+                    head=column.ls_head, doc=column.__doc__ or "", width=width
+                )
+            )
+            for column in sorted(Column.columns.values())
+        )
+        text += (
+            "\n\nAdditionally any VM property may be used as a column, "
+            "see qvm-prefs --help-properties for available values"
+        )
+        parser.exit(message=text + "\n")
 
 
 class _HelpFormatsAction(argparse.Action):
-    '''Action for argument parser that displays all formats and exits.'''
+    """Action for argument parser that displays all formats and exits."""
+
     # pylint: disable=redefined-builtin
-    def __init__(self,
-            option_strings,
-            dest=argparse.SUPPRESS,
-            default=argparse.SUPPRESS,
-            help='list all available formats with their definitions and exit'):
+    def __init__(
+        self,
+        option_strings,
+        dest=argparse.SUPPRESS,
+        default=argparse.SUPPRESS,
+        help="list all available formats with their definitions and exit",
+    ):
         super(_HelpFormatsAction, self).__init__(
             option_strings=option_strings,
             dest=dest,
             default=default,
             nargs=0,
-            help=help)
+            help=help,
+        )
 
     def __call__(self, parser, namespace, values, option_string=None):
         width = max(len(fmt) for fmt in formats)
-        text = 'Available formats:\n' + ''.join(
-            '  {fmt:{width}s}  {columns}\n'.format(
-                fmt=fmt, columns=','.join(formats[fmt]).upper(), width=width)
-            for fmt in sorted(formats))
+        text = "Available formats:\n" + "".join(
+            "  {fmt:{width}s}  {columns}\n".format(
+                fmt=fmt, columns=",".join(formats[fmt]).upper(), width=width
+            )
+            for fmt in sorted(formats)
+        )
         parser.exit(message=text)
 
 
 # common VM power states for easy command-line filtering
-DOMAIN_POWER_STATES = ['running', 'paused', 'halted']
+DOMAIN_POWER_STATES = ["running", "paused", "halted"]
 
 
 def matches_power_states(domain, **states):
-    '''Filter domains by their power state'''
+    """Filter domains by their power state"""
     # if all values are False (default) => return match on every VM
     if not states or set(states.values()) == {False}:
         return True
@@ -510,90 +554,138 @@ def matches_power_states(domain, **states):
 
 
 def get_parser():
-    '''Create :py:class:`argparse.ArgumentParser` suitable for
+    """Create :py:class:`argparse.ArgumentParser` suitable for
     :program:`qvm-ls`.
-    '''
+    """
     # parser creation is delayed to get all the columns that are scattered
     # thorough the modules
 
-    wrapper = textwrap.TextWrapper(width=80, break_on_hyphens=False,
-        initial_indent='  ', subsequent_indent='  ')
+    wrapper = textwrap.TextWrapper(
+        width=80,
+        break_on_hyphens=False,
+        initial_indent="  ",
+        subsequent_indent="  ",
+    )
 
     parser = qubesadmin.tools.QubesArgumentParser(
         vmname_nargs=argparse.ZERO_OR_MORE,
         formatter_class=argparse.RawTextHelpFormatter,
-        description='List Qubes domains and their parametres.',
-        epilog='available formats (see --help-formats):\n{}\n\n'
-               'available columns (see --help-columns):\n{}'.format(
-                wrapper.fill(', '.join(sorted(formats.keys()))),
-                wrapper.fill(', '.join(sorted(sorted(Column.columns.keys()))))))
+        description="List Qubes domains and their parametres.",
+        epilog="available formats (see --help-formats):\n{}\n\n"
+        "available columns (see --help-columns):\n{}".format(
+            wrapper.fill(", ".join(sorted(formats.keys()))),
+            wrapper.fill(", ".join(sorted(sorted(Column.columns.keys())))),
+        ),
+    )
 
-    parser.add_argument('--help-columns', action=_HelpColumnsAction)
-    parser.add_argument('--help-formats', action=_HelpFormatsAction)
-
+    parser.add_argument("--help-columns", action=_HelpColumnsAction)
+    parser.add_argument("--help-formats", action=_HelpFormatsAction)
 
     parser_formats = parser.add_mutually_exclusive_group()
 
-    parser_formats.add_argument('--format', '-o', metavar='FORMAT',
-        action='store', choices=formats.keys(), default='simple',
-        help='preset format')
+    parser_formats.add_argument(
+        "--format",
+        "-o",
+        metavar="FORMAT",
+        action="store",
+        choices=formats.keys(),
+        default="simple",
+        help="preset format",
+    )
 
-    parser_formats.add_argument('--fields', '-O', metavar='FIELD,...',
-        action='store',
-        help='user specified format (see available columns below)')
+    parser_formats.add_argument(
+        "--fields",
+        "-O",
+        metavar="FIELD,...",
+        action="store",
+        help="user specified format (see available columns below)",
+    )
 
-
-    parser.add_argument('--tags', nargs='+', metavar='TAG',
-        help='show only VMs having specific tag(s)')
+    parser.add_argument(
+        "--tags",
+        nargs="+",
+        metavar="TAG",
+        help="show only VMs having specific tag(s)",
+    )
 
     for pwrstate in DOMAIN_POWER_STATES:
-        parser.add_argument('--{}'.format(pwrstate), action='store_true',
-            help='show {} VMs'.format(pwrstate))
+        parser.add_argument(
+            "--{}".format(pwrstate),
+            action="store_true",
+            help="show {} VMs".format(pwrstate),
+        )
 
-    parser.add_argument('--raw-data', action='store_true',
-        help='Display specify data of specified VMs. Intended for '
-             'bash-parsing.')
+    parser.add_argument(
+        "--raw-data",
+        action="store_true",
+        help="Display specify data of specified VMs. Intended for "
+        "bash-parsing.",
+    )
 
-    parser.add_argument('--spinner',
-        action='store_true', dest='spinner',
-        help='reenable spinner')
+    parser.add_argument(
+        "--spinner",
+        action="store_true",
+        dest="spinner",
+        help="reenable spinner",
+    )
 
-    parser.add_argument('--no-spinner',
-        action='store_false', dest='spinner',
-        help='disable spinner')
+    parser.add_argument(
+        "--no-spinner",
+        action="store_false",
+        dest="spinner",
+        help="disable spinner",
+    )
 
     # shortcuts, compatibility with Qubes 3.2
-    parser.add_argument('--raw-list', action='store_true',
-        help='Same as --raw-data --fields=name')
+    parser.add_argument(
+        "--raw-list",
+        action="store_true",
+        help="Same as --raw-data --fields=name",
+    )
 
-    parser.add_argument('--disk', '-d',
-        action='store_const', dest='format', const='disk',
-        help='Same as --format=disk')
+    parser.add_argument(
+        "--disk",
+        "-d",
+        action="store_const",
+        dest="format",
+        const="disk",
+        help="Same as --format=disk",
+    )
 
-    parser.add_argument('--network', '-n',
-        action='store_const', dest='format', const='network',
-        help='Same as --format=network')
+    parser.add_argument(
+        "--network",
+        "-n",
+        action="store_const",
+        dest="format",
+        const="network",
+        help="Same as --format=network",
+    )
 
-    parser.add_argument('--kernel', '-k',
-        action='store_const', dest='format', const='kernel',
-        help='Same as --format=kernel')
+    parser.add_argument(
+        "--kernel",
+        "-k",
+        action="store_const",
+        dest="format",
+        const="kernel",
+        help="Same as --format=kernel",
+    )
 
     parser.set_defaults(spinner=True)
 
-#   parser.add_argument('--conf', '-c',
-#       action='store', metavar='CFGFILE',
-#       help='Qubes config file')
+    #   parser.add_argument('--conf', '-c',
+    #       action='store', metavar='CFGFILE',
+    #       help='Qubes config file')
 
     return parser
 
 
 def main(args=None, app=None):
-    '''Main routine of :program:`qvm-ls`.
+    """Main routine of :program:`qvm-ls`.
 
     :param list args: Optional arguments to override those delivered from \
         command line.
     :param app: Operate on given app object instead of instantiating new one.
-    '''
+    """
 
     parser = get_parser()
     try:
@@ -604,10 +696,10 @@ def main(args=None, app=None):
 
     if args.raw_list:
         args.raw_data = True
-        args.fields = 'name'
+        args.fields = "name"
 
     if args.fields:
-        columns = [col.strip() for col in args.fields.split(',')]
+        columns = [col.strip() for col in args.fields.split(",")]
     else:
         columns = formats[args.format]
 
@@ -630,12 +722,12 @@ def main(args=None, app=None):
 
     if args.tags:
         # filter only VMs having at least one of the specified tags
-        domains = [dom for dom in domains
-                   if set(dom.tags).intersection(set(args.tags))]
+        domains = [
+            dom for dom in domains if set(dom.tags).intersection(set(args.tags))
+        ]
 
     pwrstates = {state: getattr(args, state) for state in DOMAIN_POWER_STATES}
-    domains = [d for d in domains
-               if matches_power_states(d, **pwrstates)]
+    domains = [d for d in domains if matches_power_states(d, **pwrstates)]
 
     table = Table(domains, columns, spinner, args.raw_data)
     table.write_table(sys.stdout)
@@ -643,5 +735,5 @@ def main(args=None, app=None):
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

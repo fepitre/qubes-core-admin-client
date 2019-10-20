@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU Lesser General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-''' Shutdown a qube '''
+""" Shutdown a qube """
 
 from __future__ import print_function
 
@@ -31,6 +31,7 @@ import asyncio
 
 try:
     import qubesadmin.events.utils
+
     have_events = True
 except ImportError:
     have_events = False
@@ -38,17 +39,24 @@ import qubesadmin.tools
 import qubesadmin.exc
 
 parser = qubesadmin.tools.QubesArgumentParser(
-    description=__doc__, vmname_nargs='+')
+    description=__doc__, vmname_nargs="+"
+)
 
-parser.add_argument('--wait',
-    action='store_true', default=False,
-    help='wait for the VMs to shut down')
+parser.add_argument(
+    "--wait",
+    action="store_true",
+    default=False,
+    help="wait for the VMs to shut down",
+)
 
-parser.add_argument('--timeout',
-    action='store', type=float,
+parser.add_argument(
+    "--timeout",
+    action="store",
+    type=float,
     default=60,
-    help='timeout after which domains are killed when using --wait'
-        ' (default: %(default)d)')
+    help="timeout after which domains are killed when using --wait"
+    " (default: %(default)d)",
+)
 
 
 def main(args=None, app=None):  # pylint: disable=missing-docstring
@@ -69,7 +77,7 @@ def main(args=None, app=None):  # pylint: disable=missing-docstring
                 pass
             except qubesadmin.exc.QubesException as e:
                 if not args.wait:
-                    vm.log.error('Shutdown error: {}'.format(e))
+                    vm.log.error("Shutdown error: {}".format(e))
                 else:
                     remaining_domains.add(vm)
         if not args.wait:
@@ -81,10 +89,14 @@ def main(args=None, app=None):  # pylint: disable=missing-docstring
         if have_events:
             try:
                 # pylint: disable=no-member
-                loop.run_until_complete(asyncio.wait_for(
-                    qubesadmin.events.utils.wait_for_domain_shutdown(
-                        this_round_domains),
-                    args.timeout))
+                loop.run_until_complete(
+                    asyncio.wait_for(
+                        qubesadmin.events.utils.wait_for_domain_shutdown(
+                            this_round_domains
+                        ),
+                        args.timeout,
+                    )
+                )
             except asyncio.TimeoutError:
                 for vm in this_round_domains:
                     try:
@@ -98,18 +110,24 @@ def main(args=None, app=None):  # pylint: disable=missing-docstring
             timeout = args.timeout
             current_vms = list(sorted(this_round_domains))
             while timeout >= 0:
-                current_vms = [vm for vm in current_vms
-                    if vm.get_power_state() != 'Halted']
+                current_vms = [
+                    vm for vm in current_vms if vm.get_power_state() != "Halted"
+                ]
                 if not current_vms:
                     break
-                args.app.log.info('Waiting for shutdown ({}): {}'.format(
-                    timeout, ', '.join([str(vm) for vm in current_vms])))
+                args.app.log.info(
+                    "Waiting for shutdown ({}): {}".format(
+                        timeout, ", ".join([str(vm) for vm in current_vms])
+                    )
+                )
                 time.sleep(1)
                 timeout -= 1
             if current_vms:
                 args.app.log.info(
-                    'Killing remaining qubes: {}'
-                    .format(', '.join([str(vm) for vm in current_vms])))
+                    "Killing remaining qubes: {}".format(
+                        ", ".join([str(vm) for vm in current_vms])
+                    )
+                )
             for vm in current_vms:
                 try:
                     vm.kill()
@@ -122,8 +140,10 @@ def main(args=None, app=None):  # pylint: disable=missing-docstring
     if args.wait:
         if have_events:
             loop.close()
-        return len([vm for vm in args.domains
-            if vm.get_power_state() != 'Halted'])
+        return len(
+            [vm for vm in args.domains if vm.get_power_state() != "Halted"]
+        )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(main())
